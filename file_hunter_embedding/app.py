@@ -26,9 +26,9 @@ async def embed_image_route(request: Request):
     logger.info("embed/image: %d bytes", len(body))
     try:
         image = Image.open(io.BytesIO(body)).convert("RGB")
-    except Exception as e:
-        logger.warning("embed/image: invalid image: %s", e)
-        return JSONResponse({"error": f"Invalid image: {e}"}, status_code=400)
+    except Exception:
+        logger.warning("embed/image: cannot identify image (%d bytes)", len(body))
+        return JSONResponse({"error": f"Cannot identify image ({len(body)} bytes)"}, status_code=400)
     try:
         start = time.perf_counter()
         embedding = model.embed_image(image)
