@@ -3,6 +3,8 @@ uvicorn[standard]>=0.23
 torch>=2.0
 torchvision>=0.15
 transformers>=4.30
+sentence-transformers>=3.0
 Pillow>=9.0
 docling>=2.0
+odfdo
 einops>=0.7
