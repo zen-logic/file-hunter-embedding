@@ -4,18 +4,18 @@ Standalone embedding service for [File Hunter](https://github.com/zen-logic/file
 
 ## What it does
 
-Two embedding pipelines behind a simple HTTP API:
+Two embedding pipelines behind a simple HTTP API.
 
-**Image embeddings** (MetaCLIP) -- post an image, get a 1024-dimension vector. Post text, get a vector in the same space. Used for image similarity search: find visually similar images or search by description.
+**Image embeddings** (MetaCLIP): post an image, get a 1024-dimension vector. Post text, get a vector in the same space. Image similarity search finds visually similar images or searches by description.
 
-**Document embeddings** (Nomic) -- post a document (PDF, DOCX, PPTX, ODT, plain text, etc.), get it extracted, chunked by structure, and embedded as 768-dimension vectors. Used for semantic content search: find documents by what they say, not just their filename.
+**Document embeddings** (Nomic): post a document (PDF, DOCX, PPTX, ODT, plain text, etc.), get it extracted, chunked by structure, and embedded as 768-dimension vectors. Semantic content search finds documents by what they contain, not just their filename.
 
 ## Requirements
 
 - Python 3.11+
-- A machine with a GPU (CUDA or Apple MPS) is strongly recommended. CPU works but is slow.
+- GPU (CUDA or Apple MPS) strongly recommended. CPU works but is slow.
 
-Models are downloaded from HuggingFace on first run. MetaCLIP is approximately 2.5 GB, Nomic is approximately 0.5 GB.
+Models download from HuggingFace on first run. MetaCLIP is roughly 2.5 GB, Nomic roughly 0.5 GB.
 
 ## Installation
 
@@ -29,22 +29,15 @@ The launch script creates a virtual environment, installs dependencies, and star
 
 ## Configuration
 
-Create a `config.json` in the project root (optional, defaults shown):
+Copy `config.json.example` to `config.json` and edit as needed. All fields are optional and fall back to defaults.
 
-```json
-{
-    "host": "0.0.0.0",
-    "port": 8002,
-    "model": "facebook/metaclip-h14-fullcc2.5b",
-    "doc_model": "nomic-ai/nomic-embed-text-v1",
-    "offline": false
-}
-```
-
-- `host` / `port` -- bind address and port
-- `model` -- HuggingFace model ID for image embeddings
-- `doc_model` -- HuggingFace model ID for document embeddings
-- `offline` -- set to `true` after models are downloaded to prevent HuggingFace network calls
+| Field | Default | Description |
+|-------|---------|-------------|
+| `host` | `0.0.0.0` | Bind address |
+| `port` | `8002` | Port |
+| `model` | `facebook/metaclip-h14-fullcc2.5b` | HuggingFace model ID for image embeddings |
+| `doc_model` | `nomic-ai/nomic-embed-text-v1` | HuggingFace model ID for document embeddings |
+| `offline` | `false` | Prevent HuggingFace network calls (set after models are downloaded) |
 
 CLI arguments override config: `./embedding --host 0.0.0.0 --port 9000 --model google/siglip2-so400m-patch16-512`
 
@@ -52,7 +45,7 @@ CLI arguments override config: `./embedding --host 0.0.0.0 --port 9000 --model g
 
 ### Image embeddings
 
-**POST /api/embed/image** -- embed an image
+**POST /api/embed/image**
 
 ```bash
 curl -X POST http://localhost:8002/api/embed/image \
@@ -60,9 +53,9 @@ curl -X POST http://localhost:8002/api/embed/image \
   --data-binary @photo.jpg
 ```
 
-Returns `{"embedding": [...]}`  (1024 floats, normalised).
+Returns `{"embedding": [...]}` (1024 floats, normalised).
 
-**POST /api/embed/text** -- embed text for image search
+**POST /api/embed/text**
 
 ```bash
 curl -X POST http://localhost:8002/api/embed/text \
@@ -74,7 +67,7 @@ Returns `{"embedding": [...]}` in the same vector space as image embeddings.
 
 ### Document embeddings
 
-**POST /api/embed/document** -- extract, chunk, and embed a document
+**POST /api/embed/document**
 
 ```bash
 curl -X POST http://localhost:8002/api/embed/document \
@@ -84,11 +77,9 @@ curl -X POST http://localhost:8002/api/embed/document \
 
 Returns `{"chunks": [{"text": "...", "meta": "...", "embedding": [...]}, ...]}`.
 
-Documents are extracted with Docling (PDF, DOCX, PPTX, XLSX, ODT, HTML) and chunked by document structure. Plain text files (TXT, MD, CSV, JSON) are chunked by paragraph. Each chunk is embedded independently.
+Documents are extracted with Docling and chunked by document structure. Plain text files are chunked by paragraph. Each chunk is embedded independently. The document model loads on first use, not at startup.
 
-The document model loads on first use, not at startup.
-
-**POST /api/embed/search** -- embed a query for document search
+**POST /api/embed/search**
 
 ```bash
 curl -X POST http://localhost:8002/api/embed/search \
@@ -96,7 +87,7 @@ curl -X POST http://localhost:8002/api/embed/search \
   -d '{"query": "local authority legal action"}'
 ```
 
-Returns `{"embedding": [...]}` (768 floats, normalised). Uses the `search_query:` prefix required by the Nomic model.
+Returns `{"embedding": [...]}` (768 floats, normalised).
 
 ## Supported document formats
 
@@ -104,7 +95,7 @@ PDF, DOCX, PPTX, XLSX, ODT, ODS, HTML, EPUB, plain text (TXT, MD, CSV, JSON, XML
 
 ## Connecting to File Hunter
 
-In File Hunter settings, enable "Similarity Search" and enter the embedding service URL (e.g. `http://hostname:8002`). File Hunter handles storage (ChromaDB) and search. The embedding service is stateless.
+In File Hunter settings, enable "Similarity Search" and enter the embedding service URL. File Hunter handles storage (ChromaDB) and search. This service is stateless.
 
 ## Licence
 
