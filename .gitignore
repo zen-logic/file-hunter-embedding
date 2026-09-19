@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+venv/
+config.json
+*.db
+.DS_Store
+.ruff_cache/
