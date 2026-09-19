@@ -4,3 +4,5 @@ torch>=2.0
 torchvision>=0.15
 transformers>=4.30
 Pillow>=9.0
+docling>=2.0
+einops>=0.7

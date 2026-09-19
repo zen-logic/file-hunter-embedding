@@ -4,7 +4,8 @@ Config format:
 {
   "host": "0.0.0.0",
   "port": 8002,
-  "model": "facebook/metaclip-h14-fullcc2.5b"
+  "model": "facebook/metaclip-h14-fullcc2.5b",
+  "doc_model": "nomic-ai/nomic-embed-text-v1"
 }
 """
 
@@ -18,6 +19,7 @@ DEFAULTS = {
     "host": "0.0.0.0",
     "port": 8002,
     "model": "facebook/metaclip-h14-fullcc2.5b",
+    "doc_model": "nomic-ai/nomic-embed-text-v1",
 }
 
 
