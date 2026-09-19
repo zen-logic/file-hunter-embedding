@@ -3,6 +3,7 @@
 import io
 import json
 import logging
+import time
 
 from PIL import Image
 from starlette.applications import Starlette
@@ -22,14 +23,19 @@ async def embed_image_route(request: Request):
     if not content_type.startswith("image/"):
         return JSONResponse({"error": "Expected image content type"}, status_code=400)
     body = await request.body()
+    logger.info("embed/image: %d bytes", len(body))
     try:
         image = Image.open(io.BytesIO(body)).convert("RGB")
     except Exception as e:
+        logger.warning("embed/image: invalid image: %s", e)
         return JSONResponse({"error": f"Invalid image: {e}"}, status_code=400)
     try:
+        start = time.perf_counter()
         embedding = model.embed_image(image)
+        elapsed = time.perf_counter() - start
+        logger.info("embed/image: %dx%d embedded in %.2fs", image.width, image.height, elapsed)
     except Exception as e:
-        logger.exception("embed_image failed")
+        logger.exception("embed/image: failed")
         return JSONResponse({"error": str(e)}, status_code=500)
     return JSONResponse({"embedding": embedding})
 
@@ -42,10 +48,14 @@ async def embed_text_route(request: Request):
     text = body.get("text", "").strip()
     if not text:
         return JSONResponse({"error": "Missing 'text' field"}, status_code=400)
+    logger.info("embed/text: '%s'", text[:100])
     try:
+        start = time.perf_counter()
         embedding = model.embed_text(text)
+        elapsed = time.perf_counter() - start
+        logger.info("embed/text: embedded in %.2fs", elapsed)
     except Exception as e:
-        logger.exception("embed_text failed")
+        logger.exception("embed/text: failed")
         return JSONResponse({"error": str(e)}, status_code=500)
     return JSONResponse({"embedding": embedding})
 
@@ -64,20 +74,33 @@ def _ensure_doc_model():
 
 async def embed_document_route(request: Request):
     """POST /api/embed/document — extract, chunk, and embed a document."""
-    content_type = request.headers.get("content-type", "")
     filename = request.headers.get("x-filename", "document")
     body = await request.body()
     if not body:
         return JSONResponse({"error": "Empty request body"}, status_code=400)
 
+    logger.info("embed/document: %s (%d bytes)", filename, len(body))
     try:
         _ensure_doc_model()
         from file_hunter_embedding import extract, doc_model
+
+        start = time.perf_counter()
         chunks = extract.extract_and_chunk(body, filename)
+        extract_time = time.perf_counter() - start
+
         if not chunks:
+            logger.warning("embed/document: no content extracted from %s", filename)
             return JSONResponse({"error": "No text content extracted"}, status_code=400)
+
+        logger.info("embed/document: %d chunks extracted in %.2fs", len(chunks), extract_time)
+
+        start = time.perf_counter()
         texts = [c["text"] for c in chunks]
         embeddings = doc_model.embed_document_chunks(texts)
+        embed_time = time.perf_counter() - start
+
+        logger.info("embed/document: %d chunks embedded in %.2fs", len(chunks), embed_time)
+
         result = []
         for i, chunk in enumerate(chunks):
             result.append({
@@ -87,7 +110,7 @@ async def embed_document_route(request: Request):
             })
         return JSONResponse({"chunks": result})
     except Exception as e:
-        logger.exception("embed_document failed")
+        logger.exception("embed/document: failed for %s", filename)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -100,13 +123,17 @@ async def search_text_route(request: Request):
     query = body.get("query", "").strip()
     if not query:
         return JSONResponse({"error": "Missing 'query' field"}, status_code=400)
+    logger.info("embed/search: '%s'", query[:100])
     try:
         _ensure_doc_model()
         from file_hunter_embedding import doc_model
+        start = time.perf_counter()
         embedding = doc_model.embed_query(query)
+        elapsed = time.perf_counter() - start
+        logger.info("embed/search: embedded in %.2fs", elapsed)
         return JSONResponse({"embedding": embedding})
     except Exception as e:
-        logger.exception("search_text failed")
+        logger.exception("embed/search: failed")
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
