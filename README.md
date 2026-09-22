@@ -93,6 +93,76 @@ Returns `{"embedding": [...]}` (768 floats, normalised).
 
 PDF, DOCX, PPTX, XLSX, ODT, ODS, HTML, EPUB, plain text (TXT, MD, CSV, JSON, XML, YAML, LOG, INI, RST, EML).
 
+## Running as a service
+
+### systemd (Linux)
+
+Create `/etc/systemd/system/filehunter-embedding.service`:
+
+```ini
+[Unit]
+Description=File Hunter Embedding Service
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USER
+WorkingDirectory=/path/to/file-hunter-embedding
+ExecStart=/path/to/file-hunter-embedding/embedding
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Replace `YOUR_USER` and `/path/to/file-hunter-embedding` with your username and installation path, then enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable filehunter-embedding
+sudo systemctl start filehunter-embedding
+```
+
+Check status with `systemctl status filehunter-embedding` and logs with `journalctl -u filehunter-embedding -f`.
+
+### launchd (macOS)
+
+Create `~/Library/LaunchAgents/co.zenlogic.filehunter-embedding.plist`, replacing `/path/to/file-hunter-embedding` with your installation path:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>co.zenlogic.filehunter-embedding</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/file-hunter-embedding/embedding</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/path/to/file-hunter-embedding</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/path/to/file-hunter-embedding/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/path/to/file-hunter-embedding/stderr.log</string>
+</dict>
+</plist>
+```
+
+Then load it:
+
+```bash
+launchctl load ~/Library/LaunchAgents/co.zenlogic.filehunter-embedding.plist
+```
+
+To stop: `launchctl unload ~/Library/LaunchAgents/co.zenlogic.filehunter-embedding.plist`
+
 ## Connecting to File Hunter
 
 In File Hunter settings, enable "Similarity Search" and enter the embedding service URL. File Hunter handles storage (ChromaDB) and search. This service is stateless.
