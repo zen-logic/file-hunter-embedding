@@ -39,11 +39,51 @@ fi
 
 VENV_PYTHON="$VENV_DIR/bin/python"
 
+# ── GPU detection ────────────────────────────────────────────────────
+
+detect_torch_index() {
+    # NVIDIA — parse max CUDA version from nvidia-smi
+    if command -v nvidia-smi >/dev/null 2>&1; then
+        cuda_ver=$(nvidia-smi 2>/dev/null | grep -oP 'CUDA Version: \K[0-9]+\.[0-9]+' | head -1)
+        if [ -n "$cuda_ver" ]; then
+            major=${cuda_ver%%.*}
+            minor=${cuda_ver#*.}
+            if [ "$major" -ge 12 ] && [ "$minor" -ge 4 ]; then
+                echo "cu124"; return
+            elif [ "$major" -ge 12 ]; then
+                echo "cu121"; return
+            elif [ "$major" -ge 11 ] && [ "$minor" -ge 8 ]; then
+                echo "cu118"; return
+            fi
+        fi
+    fi
+
+    # AMD ROCm
+    if command -v rocm-smi >/dev/null 2>&1 || [ -d /opt/rocm ]; then
+        echo "rocm6.2"; return
+    fi
+
+    # Default — CPU on Linux, MPS on macOS (both in the standard PyPI wheel)
+    echo "default"
+}
+
 # Install/update deps if needed
 STAMP="$VENV_DIR/.deps-installed"
 if [ ! -f "$STAMP" ] || [ "$SCRIPT_DIR/requirements.txt" -nt "$STAMP" ]; then
     info "Installing dependencies..."
     "$VENV_PYTHON" -m pip install --quiet --upgrade pip
+
+    # Install PyTorch with the right backend
+    TORCH_BACKEND=$(detect_torch_index)
+    if [ "$TORCH_BACKEND" = "default" ]; then
+        info "Installing PyTorch (CPU/MPS)..."
+        "$VENV_PYTHON" -m pip install --quiet "torch>=2.0" "torchvision>=0.15"
+    else
+        info "Installing PyTorch ($TORCH_BACKEND)..."
+        "$VENV_PYTHON" -m pip install --quiet "torch>=2.0" "torchvision>=0.15" \
+            --index-url "https://download.pytorch.org/whl/$TORCH_BACKEND"
+    fi
+
     "$VENV_PYTHON" -m pip install --quiet -r "$SCRIPT_DIR/requirements.txt"
     touch "$STAMP"
 fi

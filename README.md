@@ -13,7 +13,16 @@ Two embedding pipelines behind a simple HTTP API.
 ## Requirements
 
 - Python 3.11+
-- GPU (CUDA or Apple MPS) strongly recommended. CPU works but is slow.
+- GPU strongly recommended. CPU works but is slow.
+
+The launch script auto-detects your GPU and installs the right PyTorch:
+
+| GPU | Detection | PyTorch backend |
+|-----|-----------|-----------------|
+| NVIDIA | `nvidia-smi` | CUDA (version matched to your driver) |
+| AMD | `rocm-smi` or `/opt/rocm` | ROCm 6.2 |
+| Apple Silicon | macOS | MPS (included in default wheel) |
+| None | fallback | CPU |
 
 Models download from HuggingFace on first run. MetaCLIP is roughly 2.5 GB, Nomic roughly 0.5 GB.
 
@@ -25,7 +34,9 @@ cd file-hunter-embedding
 ./embedding
 ```
 
-The launch script creates a virtual environment, installs dependencies, and starts the service. First run takes longer while models download.
+The launch script creates a virtual environment, installs PyTorch with the appropriate GPU support, installs remaining dependencies, and starts the service. First run takes longer while models download.
+
+If you change GPU hardware, delete the `venv` directory and re-run `./embedding` to reinstall with the correct backend.
 
 ## Configuration
 
