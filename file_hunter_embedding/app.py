@@ -114,6 +114,27 @@ async def embed_document_route(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+async def extract_markdown_route(request: Request):
+    """POST /api/extract/markdown — convert a document to markdown."""
+    filename = request.headers.get("x-filename", "document")
+    body = await request.body()
+    if not body:
+        return JSONResponse({"error": "Empty request body"}, status_code=400)
+
+    logger.info("extract/markdown: %s (%d bytes)", filename, len(body))
+    try:
+        import asyncio
+        from file_hunter_embedding import extract
+
+        start = time.perf_counter()
+        markdown = await asyncio.to_thread(extract.to_markdown, body, filename)
+        logger.info("extract/markdown: %s in %.2fs", filename, time.perf_counter() - start)
+        return JSONResponse({"markdown": markdown})
+    except Exception as e:
+        logger.exception("extract/markdown: failed for %s", filename)
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 async def search_text_route(request: Request):
     """POST /api/embed/search — embed a text query for document search."""
     try:
@@ -144,5 +165,6 @@ def create_app() -> Starlette:
             Route("/api/embed/text", embed_text_route, methods=["POST"]),
             Route("/api/embed/document", embed_document_route, methods=["POST"]),
             Route("/api/embed/search", search_text_route, methods=["POST"]),
+            Route("/api/extract/markdown", extract_markdown_route, methods=["POST"]),
         ],
     )

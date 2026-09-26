@@ -33,10 +33,9 @@ def _chunk_plain_text(text: str, filename: str) -> list[dict]:
     return chunks
 
 
-def _chunk_with_docling(file_bytes: bytes, filename: str) -> list[dict]:
-    """Extract and chunk a document using Docling."""
+def _convert(file_bytes: bytes, filename: str):
+    """Convert a document with Docling. Returns the DoclingDocument."""
     from docling.document_converter import DocumentConverter
-    from docling.chunking import HybridChunker
     import tempfile
 
     suffix = os.path.splitext(filename)[1] if filename else ""
@@ -45,27 +44,38 @@ def _chunk_with_docling(file_bytes: bytes, filename: str) -> list[dict]:
         tmp_path = tmp.name
 
     try:
-        converter = DocumentConverter()
-        result = converter.convert(tmp_path)
-        doc = result.document
-
-        chunker = HybridChunker(merge_peers=True)
-        chunks = []
-        for chunk in chunker.chunk(doc):
-            text = chunk.text.strip() if hasattr(chunk, "text") else str(chunk).strip()
-            if not text:
-                continue
-            meta = ""
-            if hasattr(chunk, "meta") and chunk.meta:
-                headings = chunk.meta.headings if hasattr(chunk.meta, "headings") else []
-                if headings:
-                    meta = " > ".join(headings)
-            chunks.append({"text": text, "meta": meta})
-
-        logger.info("Extracted %d chunks from %s", len(chunks), filename)
-        return chunks
+        return DocumentConverter().convert(tmp_path).document
     finally:
         os.unlink(tmp_path)
+
+
+def _chunk_with_docling(file_bytes: bytes, filename: str) -> list[dict]:
+    """Extract and chunk a document using Docling."""
+    from docling.chunking import HybridChunker
+
+    doc = _convert(file_bytes, filename)
+    chunker = HybridChunker(merge_peers=True)
+    chunks = []
+    for chunk in chunker.chunk(doc):
+        text = chunk.text.strip() if hasattr(chunk, "text") else str(chunk).strip()
+        if not text:
+            continue
+        meta = ""
+        if hasattr(chunk, "meta") and chunk.meta:
+            headings = chunk.meta.headings if hasattr(chunk.meta, "headings") else []
+            if headings:
+                meta = " > ".join(headings)
+        chunks.append({"text": text, "meta": meta})
+
+    logger.info("Extracted %d chunks from %s", len(chunks), filename)
+    return chunks
+
+
+def to_markdown(file_bytes: bytes, filename: str) -> str:
+    """Convert a whole document to markdown with Docling."""
+    markdown = _convert(file_bytes, filename).export_to_markdown()
+    logger.info("Converted %s to markdown (%d chars)", filename, len(markdown))
+    return markdown
 
 
 def extract_and_chunk(file_bytes: bytes, filename: str) -> list[dict]:

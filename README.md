@@ -14,6 +14,7 @@ Two embedding pipelines behind a simple HTTP API.
 
 - Python 3.11+
 - GPU strongly recommended. CPU works but is slow.
+- LibreOffice, only for DOC, XLS and PPT documents (see [below](#libreoffice-for-doc-xls-and-ppt)).
 
 The launch script auto-detects your GPU and installs the right PyTorch:
 
@@ -37,6 +38,24 @@ cd file-hunter-embedding
 The launch script creates a virtual environment, installs PyTorch with the appropriate GPU support, installs remaining dependencies, and starts the service. First run takes longer while models download.
 
 If you change GPU hardware, delete the `venv` directory and re-run `./embedding` to reinstall with the correct backend.
+
+### LibreOffice (for DOC, XLS and PPT)
+
+The legacy binary Office formats (DOC, XLS, PPT) are converted through LibreOffice before extraction. Without it those files fail to embed; everything else works. LibreOffice runs headless, no display needed.
+
+Debian 12 / Ubuntu 22.04 and later (no GUI components):
+
+```bash
+sudo apt install libreoffice-writer-nogui libreoffice-calc-nogui libreoffice-impress-nogui
+```
+
+macOS:
+
+```bash
+brew install --cask libreoffice
+```
+
+`soffice` must be on the `PATH` of the user running the service. If it isn't, set `DOCLING_LIBREOFFICE_CMD` to its full path (on macOS: `/Applications/LibreOffice.app/Contents/MacOS/soffice`).
 
 ## Configuration
 
@@ -100,9 +119,23 @@ curl -X POST http://localhost:8002/api/embed/search \
 
 Returns `{"embedding": [...]}` (768 floats, normalised).
 
+### Document extraction
+
+**POST /api/extract/markdown**
+
+```bash
+curl -X POST http://localhost:8002/api/extract/markdown \
+  -H "X-Filename: report.pdf" \
+  --data-binary @report.pdf
+```
+
+Returns `{"markdown": "..."}`: the whole document converted to markdown by Docling, with headings and tables. Accepts the Docling formats listed below.
+
 ## Supported document formats
 
-PDF, DOCX, PPTX, XLSX, ODT, ODS, HTML, EPUB, plain text (TXT, MD, CSV, JSON, XML, YAML, LOG, INI, RST, EML).
+Extracted and chunked by document structure with Docling: PDF, DOCX, XLSX, PPTX, ODT, ODS. DOC, XLS and PPT also, when [LibreOffice](#libreoffice-for-doc-xls-and-ppt) is installed.
+
+Chunked by paragraph as plain text: TXT, MD, CSV, JSON, XML, LOG, HTML. HTML is chunked as raw text, markup included.
 
 ## Running as a service
 
