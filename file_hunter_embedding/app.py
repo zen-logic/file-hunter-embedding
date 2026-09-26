@@ -124,7 +124,17 @@ async def extract_markdown_route(request: Request):
     logger.info("extract/markdown: %s (%d bytes)", filename, len(body))
     try:
         import asyncio
+        import os
         from file_hunter_embedding import extract
+
+        # 422 carries a message File Hunter shows the user as-is
+        if os.path.splitext(filename)[1].lower() in (".doc", ".xls", ".ppt"):
+            from docling.backend.docx.drawingml.utils import get_libreoffice_cmd
+            if not get_libreoffice_cmd():
+                return JSONResponse(
+                    {"error": "DOC, XLS and PPT files need LibreOffice installed on the embedding service machine."},
+                    status_code=422,
+                )
 
         start = time.perf_counter()
         markdown = await asyncio.to_thread(extract.to_markdown, body, filename)
