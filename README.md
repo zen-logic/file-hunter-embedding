@@ -55,7 +55,12 @@ macOS:
 brew install --cask libreoffice
 ```
 
-`soffice` must be on the `PATH` of the user running the service. If it isn't, set `DOCLING_LIBREOFFICE_CMD` to its full path (on macOS: `/Applications/LibreOffice.app/Contents/MacOS/soffice`).
+Nothing to configure: the service finds LibreOffice automatically in both places these installs put it. To check it's installed, run LibreOffice's command-line program:
+
+```bash
+soffice --version                                              # Linux
+/Applications/LibreOffice.app/Contents/MacOS/soffice --version  # macOS
+```
 
 ## Configuration
 
