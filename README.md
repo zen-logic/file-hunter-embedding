@@ -1,14 +1,16 @@
 # File Hunter Embedding Service
 
-Standalone embedding service for [File Hunter](https://github.com/zen-logic/file-hunter). Provides image and document embeddings for similarity search and semantic content search.
+Standalone embedding service for [File Hunter](https://github.com/zen-logic/file-hunter). Provides image and document embeddings for similarity search and semantic content search, and converts documents to markdown.
 
 ## What it does
 
-Two embedding pipelines behind a simple HTTP API.
+Two embedding pipelines and a document converter behind a simple HTTP API.
 
 **Image embeddings** (MetaCLIP): post an image, get a 1024-dimension vector. Post text, get a vector in the same space. Image similarity search finds visually similar images or searches by description.
 
 **Document embeddings** (Nomic): post a document (PDF, DOCX, PPTX, ODT, plain text, etc.), get it extracted, chunked by structure, and embedded as 768-dimension vectors. Semantic content search finds documents by what they contain, not just their filename.
+
+**Document extraction** (Docling): post a document, get its full text back as markdown, with headings and tables. File Hunter uses this for "Extract to Markdown".
 
 ## Requirements
 
@@ -38,6 +40,22 @@ cd file-hunter-embedding
 The launch script creates a virtual environment, installs PyTorch with the appropriate GPU support, installs remaining dependencies, and starts the service. First run takes longer while models download.
 
 If you change GPU hardware, delete the `venv` directory and re-run `./embedding` to reinstall with the correct backend.
+
+### Updating
+
+Stop the service, then in the `file-hunter-embedding` folder:
+
+```bash
+git pull
+./embedding
+```
+
+If the update changed the dependencies, the launch script installs them before starting. If you run it as a service (see [Running as a service](#running-as-a-service)), restart the service instead of running `./embedding`:
+
+```bash
+sudo systemctl restart filehunter-embedding                                          # Linux
+launchctl kickstart -k gui/$(id -u)/co.zenlogic.filehunter-embedding                 # macOS
+```
 
 ### LibreOffice (for DOC, XLS and PPT)
 
@@ -74,7 +92,16 @@ Copy `config.json.example` to `config.json` and edit as needed. All fields are o
 | `doc_model` | `nomic-ai/nomic-embed-text-v1` | HuggingFace model ID for document embeddings |
 | `offline` | `false` | Prevent HuggingFace network calls (set after models are downloaded) |
 
-CLI arguments override config: `./embedding --host 0.0.0.0 --port 9000 --model google/siglip2-so400m-patch16-512`
+Command-line options override the config file:
+
+| Option | Overrides |
+|--------|-----------|
+| `--host` | `host` |
+| `--port` | `port` |
+| `--model` | `model` |
+| `--config` | Path to the config file (default: `config.json` in the `file-hunter-embedding` folder) |
+
+For example: `./embedding --port 9000`
 
 ## API
 
@@ -214,7 +241,7 @@ To stop: `launchctl unload ~/Library/LaunchAgents/co.zenlogic.filehunter-embeddi
 
 ## Connecting to File Hunter
 
-In File Hunter settings, enable "Similarity Search" and enter the embedding service URL. File Hunter handles storage (ChromaDB) and search. This service is stateless.
+In File Hunter, open Settings, tick "Enable similarity search" and enter the Embedding Service URL, e.g. `http://192.168.1.20:8002` (the address of the machine running this service, and its port). That turns on image similarity search, document content search and Extract to Markdown. File Hunter handles storage (ChromaDB) and search. This service stores nothing.
 
 ## Licence
 
