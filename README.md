@@ -54,7 +54,7 @@ If the update changed the dependencies, the launch script installs them before s
 
 ```bash
 sudo systemctl restart filehunter-embedding                                          # Linux
-launchctl kickstart -k gui/$(id -u)/co.zenlogic.filehunter-embedding                 # macOS
+sudo launchctl kickstart -k system/uk.zenlogic.filehunter-embedding                  # macOS
 ```
 
 ### LibreOffice (for DOC, XLS and PPT)
@@ -204,7 +204,13 @@ Check status with `systemctl status filehunter-embedding` and logs with `journal
 
 ### launchd (macOS)
 
-Create `~/Library/LaunchAgents/co.zenlogic.filehunter-embedding.plist`, replacing `/path/to/file-hunter-embedding` with your installation path:
+This runs the service system-wide at boot, whether or not anyone is logged in. Create the plist file:
+
+```bash
+sudo nano /Library/LaunchDaemons/uk.zenlogic.filehunter-embedding.plist
+```
+
+Paste the following, replacing `YOUR_USER` with your macOS username (the one that owns the `file-hunter-embedding` folder) and the paths with your installation path:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -212,21 +218,23 @@ Create `~/Library/LaunchAgents/co.zenlogic.filehunter-embedding.plist`, replacin
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>co.zenlogic.filehunter-embedding</string>
+    <string>uk.zenlogic.filehunter-embedding</string>
+    <key>UserName</key>
+    <string>YOUR_USER</string>
+    <key>WorkingDirectory</key>
+    <string>/Users/YOUR_USER/file-hunter-embedding</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/path/to/file-hunter-embedding/embedding</string>
+        <string>/Users/YOUR_USER/file-hunter-embedding/embedding</string>
     </array>
-    <key>WorkingDirectory</key>
-    <string>/path/to/file-hunter-embedding</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/path/to/file-hunter-embedding/stdout.log</string>
+    <string>/Users/YOUR_USER/file-hunter-embedding/embedding.log</string>
     <key>StandardErrorPath</key>
-    <string>/path/to/file-hunter-embedding/stderr.log</string>
+    <string>/Users/YOUR_USER/file-hunter-embedding/embedding.log</string>
 </dict>
 </plist>
 ```
@@ -234,10 +242,17 @@ Create `~/Library/LaunchAgents/co.zenlogic.filehunter-embedding.plist`, replacin
 Then load it:
 
 ```bash
-launchctl load ~/Library/LaunchAgents/co.zenlogic.filehunter-embedding.plist
+sudo launchctl load /Library/LaunchDaemons/uk.zenlogic.filehunter-embedding.plist
 ```
 
-To stop: `launchctl unload ~/Library/LaunchAgents/co.zenlogic.filehunter-embedding.plist`
+Useful commands:
+
+```bash
+sudo launchctl list | grep filehunter-embedding                                        # check status
+sudo launchctl unload /Library/LaunchDaemons/uk.zenlogic.filehunter-embedding.plist   # stop
+sudo launchctl load /Library/LaunchDaemons/uk.zenlogic.filehunter-embedding.plist     # start
+tail -f ~/file-hunter-embedding/embedding.log                                          # follow logs
+```
 
 ## Connecting to File Hunter
 
