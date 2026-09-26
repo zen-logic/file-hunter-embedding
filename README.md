@@ -241,7 +241,7 @@ To stop: `launchctl unload ~/Library/LaunchAgents/co.zenlogic.filehunter-embeddi
 
 ## Connecting to File Hunter
 
-In File Hunter, open Settings, tick "Enable similarity search" and enter the Embedding Service URL, e.g. `http://192.168.1.20:8002` (the address of the machine running this service, and its port). That turns on image similarity search, document content search and Extract to Markdown. File Hunter handles storage (ChromaDB) and search. This service stores nothing.
+In File Hunter, open Settings, go to the Embedding Service section, tick "Enable embedding service" and enter the Embedding Service URL, e.g. `http://192.168.1.20:8002` (the address of the machine running this service, and its port). That turns on image similarity search, document content search and Extract to Markdown. File Hunter handles storage (ChromaDB) and search. This service stores nothing.
 
 ## Licence
 
